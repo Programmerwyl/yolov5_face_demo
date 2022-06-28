@@ -2,6 +2,8 @@ import onnxruntime
 import numpy as np
 import torch
 import cv2
+import glob
+import os
 # from utils.general import non_max_suppression_face
 from utils.general import check_img_size, non_max_suppression_face,scale_coords,scale_coords_landmarks,img_process,non_max_suppression
 
@@ -12,22 +14,26 @@ from utils.general import check_img_size, non_max_suppression_face,scale_coords,
 # f = "./model/yolov5_0.5_new111.onnx"
 # f = "D:/project/python/study/yolov5face2/0516/yolov5-face/runs/train/exp34/weights/best_111.onnx"
 # f = "D:/project/python/study/yolov5face2/0516/yolov5-face/runs/train/exp34/weights/best_error_new.onnx"
-# f = "D:/project/python/study/yolov5face2/0516/yolov5-face/runs/train/exp34/weights/best_good_new_demo3.onnx"
-# f = "D:/project/python/study/yolov5face2/0516/yolov5-face_simply/runs/train/exp102/weights/demo/last_good_new_demo5.onnx"
-f = "D:/project/python/study/yolov5face2/0516/yolov5-face_simply/model/model/best_good.onnx"
+f = "D:/project/python/study/yolov5face2/0516/yolov5-face/runs/train/exp34/weights/best_good_new_demo3.onnx"
 
 providers =  ['CPUExecutionProvider']
 session = onnxruntime.InferenceSession(f, providers=providers)
 
-cap = cv2.VideoCapture(0)
-while True:
-    ret,frame = cap.read()
+dir_path = "G:/dataset/face/face_alignment/wilderface/yolov5-face/val_demo"
+
+list_path = glob.glob("G:/dataset/face/face_alignment/wilderface/yolov5-face/val_demo/*.jpg")
+print(" list  ",list_path)
+
+for image_path in list_path:
+    print(" image_path ",image_path)
+    frame = cv2.imread(image_path)
+    # ret,frame = cap.read()
 
     show_frame = np.copy(frame)
     img = img_process(frame, (320, 320)).to("cpu")
 
-    if not ret:
-        break
+    # if not ret:
+    #     break
     # img = torch.from_numpy(frame)
     im = img.cpu().numpy().astype(np.float32) # torch to numpy
     y_onnx = session.run([session.get_outputs()[0].name], {session.get_inputs()[0].name: im})[0]
@@ -39,6 +45,8 @@ while True:
 
     for i, det in enumerate(faces):  # detections per image
         print(" len(det)   ",len(det))
+        if len(det)==0:
+            os.remove(image_path)
         if len(det):
             det[:, :4] = scale_coords(img.shape[2:], det[:, :4], frame.shape).round()
             # det[:, 5:15] = scale_coords_landmarks(img.shape[2:], det[:, 5:15], frame.shape).round()
@@ -60,4 +68,4 @@ while True:
                             (0, 50, 255), thickness=2)
 
     cv2.imshow("show_frame",show_frame)
-    cv2.waitKey(3)
+    cv2.waitKey(10)

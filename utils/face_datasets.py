@@ -327,6 +327,19 @@ class LoadFaceImagesAndLabels(Dataset):  # for training/testing
                 labels[:, 14] = np.array(x[:, 14] > 0, dtype=np.int32) * (ratio[1] * h * x[:, 14] + pad[1]) + (
                     np.array(x[:, 14] > 0, dtype=np.int32) - 1)
 
+
+        # print(" label ",labels)
+
+        # face_size = (labels[:,3]-labels[:,1])*(labels[:,4]-labels[:,2])
+        #
+        # big_face = face_size>2500
+        # labels= labels[big_face]
+        #
+        # print("label ",labels)
+        # if labels.size == 0:
+        #     return  None,None,None,None
+        # print(" face size ",face_size)
+
         if self.augment:
             # Augment imagespace
             if not mosaic:
@@ -404,6 +417,9 @@ class LoadFaceImagesAndLabels(Dataset):  # for training/testing
     @staticmethod
     def collate_fn(batch):
         img, label, path, shapes = zip(*batch)  # transposed
+        # if img is None or label is None:
+        #     return None,None,None,None
+
         for i, l in enumerate(label):
             l[:, 0] = i  # add target image index for build_targets()
         return torch.stack(img, 0), torch.cat(label, 0), path, shapes

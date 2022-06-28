@@ -22,7 +22,7 @@ import onnx
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     # parser.add_argument('--weights', type=str, default='./model/yolov5n-0.5.pt', help='weights path')  # from yolov5/models/
-    parser.add_argument('--weights', type=str, default='D:/project/python/study/yolov5face2/0516/yolov5-face/runs/train/exp34/weights/best.pt', help='weights path')  # from yolov5/models/
+    parser.add_argument('--weights', type=str, default='D:/project/python/study/yolov5face2/0516/yolov5-face_simply/model/model/best.pt', help='weights path')  # from yolov5/models/
     parser.add_argument('--img_size', nargs='+', type=int, default=[320, 320], help='image size')  # height, width
     parser.add_argument('--batch_size', type=int, default=1, help='batch size')
     parser.add_argument('--simplify', action='store_true', default=True, help='simplify onnx')
@@ -77,7 +77,7 @@ if __name__ == '__main__':
 
     # ONNX export
     print('\nStarting ONNX export with onnx %s...' % onnx.__version__)
-    f = opt.weights.replace('.pt', '_good_new_demo3.onnx')  # filename
+    f = opt.weights.replace('.pt', '_good.onnx')  # filename
     model.fuse()  # only for ONNX
     input_names=['input']
     output_names=['output']

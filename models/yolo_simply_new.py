@@ -43,23 +43,23 @@ class Detect(nn.Module):
         self.register_buffer('anchors', a)  # shape(nl,na,2)
         # self.register_buffer('anchor_grid', a.clone().view(self.nl, 1, -1, 1, 1, 2))  # shape(nl,1,na,1,1,2)
         self.anchor_grid = [torch.zeros(1)] * self.nl  # init anchor grid
-        self.m = nn.ModuleList(nn.Conv2d(x, self.no*self.na, 1) for x in ch)  # output conv
 
+        print(" self.no*self.na ",self.no*self.na)
+        self.m = nn.ModuleList(nn.Conv2d(x, self.no*self.na, 1) for x in ch)  # output conv
 
     def forward(self, x):
 
         z = []  # inference output
-        for i in range(self.nl):
-            # x[i] = self.m[i](x[i])  # conv
-            # bs, number, ny, nx = x[i].shape  # x(bs,255,20,20) to x(bs,3,20,20,85)
-            # # x[i] = x[i].view(bs, self.na, self.no, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
-            # # x[i] = x[i].view( self.na, self.no, ny, nx).permute( 0, 2, 3, 1).contiguous()
-            # # x[i] = x[i][:,0:5,:,:].view( bs, 5, ny, nx).permute( 0, 2, 3, 1).contiguous()
-            # x[i] = x[i].permute( 0, 2, 3, 1).contiguous()
-
+        for i in range(2,3):
+        # for i in range(self.nl):
             x[i] = self.m[i](x[i])  # conv
-            bs, _, ny, nx = x[i].shape  # x(bs,255,20,20) to x(bs,3,20,20,85)
-            x[i] = x[i].view(bs, self.na, self.no, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
+            bs, number, ny, nx = x[i].shape  # x(bs,255,20,20) to x(bs,3,20,20,85)
+            # x[i] = x[i].view(bs, self.na, self.no, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
+            # x[i] = x[i].view( self.na, self.no, ny, nx).permute( 0, 2, 3, 1).contiguous()
+            # x[i] = x[i][:,0:5,:,:].view( bs, 5, ny, nx).permute( 0, 2, 3, 1).contiguous()
+            x[i] = x[i].permute( 0, 2, 3, 1).contiguous()
+
+            # x[i] = x[i].view(bs, self.na, self.no, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
 
             '''
                 - [4,5,  8,10,  13,16]  # P3/8
@@ -91,8 +91,8 @@ class Detect(nn.Module):
 
                 z.append(y_out)
 
-        return  x if self.training else torch.cat(z, dim=1)
-
+        # return  x if self.training else torch.cat(z, dim=1)
+        return  z
 
     def _make_grid_new(self,nx=20, ny=20,i=0):
         d = self.anchors[i].device

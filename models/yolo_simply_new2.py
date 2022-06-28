@@ -34,16 +34,18 @@ class Detect(nn.Module):
 
         self.nc = nc  # number of classes
         #self.no = nc + 5  # number of outputs per anchor
-        self.no = nc + 5  # number of outputs per anchor
+        self.no = 5  # number of outputs per anchor
 
         self.nl = len(anchors)  # number of detection layers
         self.na = len(anchors[0]) // 2  # number of anchors
         self.grid = [torch.zeros(1)] * self.nl  # init grid
         a = torch.tensor(anchors).float().view(self.nl, -1, 2)
         self.register_buffer('anchors', a)  # shape(nl,na,2)
-        self.register_buffer('anchor_grid', a.clone().view(self.nl, 1, -1, 1, 1, 2))  # shape(nl,1,na,1,1,2)
-        # self.anchor_grid = [torch.zeros(1)] * self.nl  # init anchor grid
-        self.m = nn.ModuleList(nn.Conv2d(x, 5, 1) for x in ch)  # output conv
+        # self.register_buffer('anchor_grid', a.clone().view(self.nl, 1, -1, 1, 1, 2))  # shape(nl,1,na,1,1,2)
+        self.anchor_grid = [torch.zeros(1)] * self.nl  # init anchor grid
+
+        print(" self.no*self.na ",self.no*self.na)
+        self.m = nn.ModuleList(nn.Conv2d(x, self.no*self.na, 1) for x in ch)  # output conv
 
 
     def forward(self, x):
@@ -54,7 +56,8 @@ class Detect(nn.Module):
             bs, number, ny, nx = x[i].shape  # x(bs,255,20,20) to x(bs,3,20,20,85)
             # x[i] = x[i].view(bs, self.na, self.no, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
             # x[i] = x[i].view( self.na, self.no, ny, nx).permute( 0, 2, 3, 1).contiguous()
-            x[i] = x[i][:,0:5,:,:].view( 1, 5, ny, nx).permute( 0, 2, 3, 1).contiguous()
+            # x[i] = x[i][:,0:5,:,:].view( bs, 5, ny, nx).permute( 0, 2, 3, 1).contiguous()
+            x[i] = x[i].permute( 0, 2, 3, 1).contiguous()
 
             '''
                 - [4,5,  8,10,  13,16]  # P3/8
@@ -80,7 +83,7 @@ class Detect(nn.Module):
 
                 y_out = torch.cat([box_xy, box_wh,y1], dim=1)
 
-                y_out = y_out.view(1,5, -1, 1)
+                y_out = y_out.view(bs,5, -1, 1)
 
                 y_out = torch.permute(y_out, [0, 2, 3, 1]).contiguous()
 

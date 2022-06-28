@@ -5,7 +5,7 @@ import torch.nn as nn
 import numpy as np
 from utils.general import bbox_iou
 from utils.torch_utils import is_parallel
-
+# import logging
 
 def smooth_BCE(eps=0.1):  # https://github.com/ultralytics/yolov3/issues/238#issuecomment-598028441
     # return positive, negative label smoothing BCE targets
@@ -118,17 +118,18 @@ def compute_loss(p, targets, model):  # predictions, targets, model
     lcls, lbox, lobj, lmark = torch.zeros(1, device=device), torch.zeros(1, device=device), torch.zeros(1, device=device), torch.zeros(1, device=device)
     tcls, tbox, indices, anchors, tlandmarks, lmks_mask = build_targets(p, targets, model)  # targets
     h = model.hyp  # hyperparameters
-
     # Define criteria
-    # BCEcls = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([h['cls_pw']], device=device))  # weight=model.class_weights)
     BCEobj = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([h['obj_pw']], device=device))
-
+    # BCEobj = FocalLoss(BCEobj,gamma=2.0)
 
     # Losses
     nt = 0  # number of targets
     no = len(p)  # number of outputs
     balance = [4.0, 1.0, 0.4] if no == 3 else [4.0, 1.0, 0.4, 0.1]  # P3-5 or P3-6
+    # balance = [ 0.4]  # P3-5 or P3-6
     for i, pi in enumerate(p):  # layer index, layer predictions
+
+        # print(" i xx    ",i)
         b, a, gj, gi = indices[i]  # image, anchor, gridy, gridx
         # b, _, gj, gi = indices[i]  # image, anchor, gridy, gridx
         tobj = torch.zeros_like(pi[..., 0], device=device)  # target obj
@@ -145,23 +146,28 @@ def compute_loss(p, targets, model):  # predictions, targets, model
             pbox = torch.cat((pxy, pwh), 1)  # predicted box
             iou = bbox_iou(pbox.T, tbox[i], x1y1x2y2=False, CIoU=True)  # iou(prediction, target)
             lbox += (1.0 - iou).mean()  # iou loss
-
             # Objectness
             tobj[b, a, gj, gi] = (1.0 - model.gr) + model.gr * iou.detach().clamp(0).type(tobj.dtype)  # iou ratio
             # tobj[b,gj, gi] = (1.0 - model.gr) + model.gr * iou.detach().clamp(0).type(tobj.dtype)  # iou ratio
 
 
-
         lobj += BCEobj(pi[..., 4], tobj) * balance[i]  # obj loss
+        # lobj += BCEobj(pi[..., 4], tobj) *5.0 # obj loss
 
     s = 3 / no  # output count scaling
     lbox *= h['box'] * s
     lobj *= h['obj'] * s * (1.4 if no == 4 else 1.)
-    bs = tobj.shape[0]
-    loss = lbox + lobj
-    print("  lbox ==  %f      lobj %f  "%(lbox,lobj))
 
-    # return loss * bs, torch.cat((lbox, lobj, lcls, lmark, loss)).detach()
+    bs = tobj.shape[0]  # batch size
+
+    loss = lbox + lobj
+    # print(" lbox ",lbox.detach().cpu().numpy())
+    # print(" lobj ",lobj.detach().cpu().numpy())
+
+    # logger = logging.getLogger(__name__)
+
+    print('lbox ==   %f             lobj == %f' % (lbox.detach().cpu().numpy(), lobj.detach().cpu().numpy()))
+
     return loss * bs, torch.cat((lbox, lobj, loss)).detach()
 
 
@@ -184,8 +190,10 @@ def build_targets(p, targets, model):
     for i in range(det.nl):
         anchors = det.anchors[i]
         gain[2:6] = torch.tensor(p[i].shape)[[3, 2, 3, 2]]  # xyxy gain
+        # gain[2:6] = torch.tensor(p[i].shape)[[2, 1, 2, 1]]  # xyxy gain
         #landmarks 10
         gain[6:16] = torch.tensor(p[i].shape)[[3, 2, 3, 2, 3, 2, 3, 2, 3, 2]]  # xyxy gain
+        # gain[6:16] = torch.tensor(p[i].shape)[[2, 1, 2, 1, 2, 1, 2, 1, 2, 1]]  # xyxy gain
 
         # Match targets to anchors
         t = targets * gain

@@ -12,40 +12,36 @@ def load_model(weights, device):
 
 if __name__ == '__main__':
 
-    video_path ="E:/project/python/face/yolov5-face_simply/model/mouth.mp4"
-    cap = cv2.VideoCapture(video_path)
+    cap = cv2.VideoCapture(0)
     # save_path = './weights/yolov5_05_net_new1.pt'
     # model = Model(cfg="./models/yolov5n-0.5.yaml", ch=3, nc=1).cuda()
     # model.load_state_dict(torch.load(save_path))
 
     # model = load_model("D:/project/python/study/yolov5face2/0516/yolov5-face/runs/train/exp34/weights/best.pt", "cuda")
-    # model = load_model("E:/project/python/face/yolov5-face_simply/model/best.pt", "cuda")
-    model = load_model("E:/project/python/face/yolov5-face_simply/runs/train/exp14/weights/best.pt", "cuda")
-    # model = load_model("E:/project/python/face/yolov5-face_simply/model/yolov5n-0.5.pt", "cuda")
+    # model = load_model("D:/project/python/study/yolov5face2/0516/yolov5-face_simply/runs/train/exp54/weights/best.pt", "cuda")
+    # model = load_model("D:/project/python/study/yolov5face2/0516/yolov5-face_simply/runs/train/exp102/weights/demo/last.pt", "cuda")
+    # model = load_model("D:/project/python/study/yolov5face2/0516/yolov5-face_simply/runs/train/demo/best.pt", "cuda")
+    # model = load_model("./model/yolov5n-0.5.pt", "cuda")
+    model = load_model("D:/project/python/study/yolov5face2/0516/yolov5-face_simply/model/model/best.pt", "cuda")
 
-    delattr(model.model[-1], 'anchor_grid')
-    model.model[-1].anchor_grid=[torch.zeros(1)] * 3 # nl=3 number of detection layers
+    # delattr(model.model[-1], 'anchor_grid')
+    # model.model[-1].anchor_grid=[torch.zeros(1)] * 3 # nl=3 number of detection layers
 
     # print(" model ",model)
 
     while True:
 
         ret, frame = cap.read()
-        print(" ret ",ret)
+        show_frame = np.copy(frame)
         if not ret:
             break
         t1 = time.time()
-        show_frame = np.copy(frame)
         img = img_process(frame, (320, 320)).to("cuda")
         # print(" img ",img.shape)
-        # pred = model(img)[0]
         pred = model(img)[0]
-
         pred = np.squeeze(pred)
-
-        # pred = np.expand_dims(pred,axis=0)
         pred = torch.unsqueeze(pred,dim=0)
-        print(" pred ", pred.shape)
+        print(" pred ",pred.shape)
         # (1,6300,16)
         faces = non_max_suppression(pred, conf_thres=0.3, iou_thres=0.5)
         for i, det in enumerate(faces):  # detections per imag
@@ -61,6 +57,9 @@ if __name__ == '__main__':
                     # if det[j, 4].cpu().numpy() < 0.6:
                     #     continue
                     xyxy = det[j, :4].view(-1).tolist()
+                    fac_size = (float(xyxy[2])- float(xyxy[0])) *  (float(xyxy[3])- float(xyxy[1]))
+
+                    print( "  fac_size  ",fac_size)
                     conf = det[j, 4].cpu().numpy()
                     # landmarks = (det[j, 5:15].view(1, 10)).view(-1).tolist()
                     cv2.rectangle(show_frame, (int(xyxy[0]), int(xyxy[1])), (int(xyxy[2]), int(xyxy[3])), (0, 0, 255),

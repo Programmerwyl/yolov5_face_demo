@@ -21,7 +21,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-import test  # import test.py to get mAP after each epoch
+import val_demo  # import val_demo.py to get mAP after each epoch
 from models.experimental import attempt_load
 # from models.yolo import Model
 from models.yolo_demo import  Model
@@ -339,15 +339,15 @@ def train(hyp, opt, device, tb_writer=None, wandb=None):
                 ema.update_attr(model, include=['yaml', 'nc', 'hyp', 'gr', 'names', 'stride', 'class_weights'])
             final_epoch = epoch + 1 == epochs
             if not opt.notest or final_epoch:  # Calculate mAP
-                results, maps, times = test.test(opt.data,
-                                                 batch_size=total_batch_size,
-                                                 imgsz=imgsz_test,
-                                                 model=ema.ema,
-                                                 single_cls=opt.single_cls,
-                                                 dataloader=testloader,
-                                                 save_dir=save_dir,
-                                                 plots=False,
-                                                 log_imgs=opt.log_imgs if wandb else 0)
+                results, maps, times = val_demo.val(opt.data,
+                                                    batch_size=total_batch_size,
+                                                    imgsz=imgsz_test,
+                                                    model=ema.ema,
+                                                    single_cls=opt.single_cls,
+                                                    dataloader=testloader,
+                                                    save_dir=save_dir,
+                                                    plots=False,
+                                                    log_imgs=opt.log_imgs if wandb else 0)
 
             # Write
             with open(results_file, 'a') as f:
@@ -413,17 +413,17 @@ def train(hyp, opt, device, tb_writer=None, wandb=None):
         logger.info('%g epochs completed in %.3f hours.\n' % (epoch - start_epoch + 1, (time.time() - t0) / 3600))
         if opt.data.endswith('coco.yaml') and nc == 80:  # if COCO
             for conf, iou, save_json in ([0.25, 0.45, False], [0.001, 0.65, True]):  # speed, mAP tests
-                results, _, _ = test.test(opt.data,
-                                          batch_size=total_batch_size,
-                                          imgsz=imgsz_test,
-                                          conf_thres=conf,
-                                          iou_thres=iou,
-                                          model=attempt_load(final, device).half(),
-                                          single_cls=opt.single_cls,
-                                          dataloader=testloader,
-                                          save_dir=save_dir,
-                                          save_json=save_json,
-                                          plots=False)
+                results, _, _ = val_demo.val(opt.data,
+                                             batch_size=total_batch_size,
+                                             imgsz=imgsz_test,
+                                             conf_thres=conf,
+                                             iou_thres=iou,
+                                             model=attempt_load(final, device).half(),
+                                             single_cls=opt.single_cls,
+                                             dataloader=testloader,
+                                             save_dir=save_dir,
+                                             save_json=save_json,
+                                             plots=False)
 
     else:
         dist.destroy_process_group()
@@ -435,8 +435,8 @@ def train(hyp, opt, device, tb_writer=None, wandb=None):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', type=str, default='./weights/yolov5_05_net.pt', help='initial weights path')
-    # parser.add_argument('--weights', type=str, default='D:/project/python/study/yolov5face2/0516/yolov5-face/weights/best.pt', help='initial weights path')
+    # parser.add_argument('--weights', type=str, default='./weights/yolov5_05_net.pt', help='initial weights path')
+    parser.add_argument('--weights', type=str, default='D:/project/python/study/yolov5face2/0516/yolov5-face/weights/best.pt', help='initial weights path')
     parser.add_argument('--cfg', type=str, default='models/yolov5n-0.5.yaml', help='model.yaml path')
     parser.add_argument('--data', type=str, default='data/widerface.yaml', help='data.yaml path')
     parser.add_argument('--hyp', type=str, default='data/hyp.scratch.yaml', help='hyperparameters path')
